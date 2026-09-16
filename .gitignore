@@ -1,0 +1,41 @@
+# --- Kotlin / Java (Spring Boot) ---
+services/hull-fabrication/build/
+services/hull-fabrication/.gradle/
+services/hull-fabrication/out/
+*.class
+*.jar
+*.war
+
+# --- Golang ---
+services/hyperdrive-calibration/hyperdrive
+services/hyperdrive-calibration/*.exe
+
+# --- TypeScript / Node.js ---
+services/astromech-provisioning/node_modules/
+services/astromech-provisioning/dist/
+services/astromech-provisioning/npm-debug.log*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+*.egg-info/
+
+# --- Environment & Secrets ---
+.env
+.env.local
+*.pem
+*.key
+
+# --- IDEs & OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Docker & Infra ---
+*.log
