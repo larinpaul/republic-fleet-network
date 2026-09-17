@@ -39,3 +39,6 @@ Thumbs.db
 
 # --- Docker & Infra ---
 *.log
+
+
+Invoke-WebRequest -Uri "https://start.spring.io/starter.zip?type=gradle-project-kotlin&language=kotlin&bootVersion=3.2.0&baseDir=hull-fabrication&groupId=com.republic&artifactId=hull-fabrication&name=hull-fabrication&description=Hull%20Fabrication%20Service&packageName=com.republic.hull&packaging=jar&javaVersion=17&dependencies=web,data-jpa,postgresql" -OutFile "hull-fabrication.zip"
