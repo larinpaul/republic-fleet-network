@@ -34,7 +34,6 @@ func StartHoloNetListener(ctx context.Context, kafkaBroker string, topic string)
 			log.Printf("❌ Error reading from HoloNet: %v", err)
 			continue
 		}
-
 		// Translate the raw JSON bytes into our Go struct
 		var event models.HullCompletedEvent
 		if err := json.Unmarshal(m.Value, &event); err != nil {
