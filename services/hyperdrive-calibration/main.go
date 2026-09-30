@@ -65,7 +65,7 @@ func main() {
 	cancel()                     // Stops the Kafka listener
 	server.Shutdown(shutdownCtx) // Stops the HTTP server
 
-	log.Println("May the Force be with you. Goodbye.")
+	log.Println("May the Force be with you. Always. :)")
 }
 
 // getEnv is a helper to read environment variables with a fallback default
