@@ -1,0 +1,70 @@
+version: '3.8'
+
+# The HoloNet (Kafka) and Durasteel Vault (Postgres) Infrastructure
+services:
+
+  # --- 1. The Routing Tables (Zookeeper) ---
+  # Kafka uses Zookeeper to manage its cluster state and broker metadata.
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: republic-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  # --- 2. The Message Bus (Apache Kafka) ---
+  # The actual HoloNet where events are broadcasted.
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: republic-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      # 9092 is for our local Kotlin/Go/Python services to connect to
+      # 29092 is for other Docker containers to connect to each other
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      # Crucial: Tell Kafka how to advertise itself to the outside world (your Windows host)
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  # --- 3. The HoloNet Monitoring Terminal (Kafka UI) ---
+  # A beautiful web interface to see the topics, messages, and consumer groups in real-time.
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: republic-kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: republic-holonet
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+  # --- 4. The Durasteel Vault (PostgreSQL) ---
+  # The relational database for the Kotlin Hull Fabrication service.
+  postgres:
+    image: postgres:15-alpine
+    container_name: republic-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: jedi_master
+      POSTGRES_PASSWORD: force_is_strong
+      POSTGRES_DB: republic_fleet
+    volumes:
+      # Persists the database data even if the container is destroyed
+      - postgres_data:/var/lib/postgresql/data
+
+# Named volumes for data persistence
+volumes:
+  postgres_data:
+  
