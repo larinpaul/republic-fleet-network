@@ -11,30 +11,33 @@ import (
 
 	"github.com/republic/hyperdrive-calibration/internal/calculator"
 	"github.com/republic/hyperdrive-calibration/internal/consumer"
+	"github.com/republic/hyperdrive-calibration/internal/producer"
 )
 
 func main() {
 	log.Println("🌌 Igniting Hyperdrive Calibration Service...")
 
 	kafkaBroker := getEnv("KAFKA_BROKER", "localhost:9092")
-	kafkaTopic := "republic.ship.hull.completed"
+	incomingTopic := "republic.ship.hull.completed"
+	outgoingTopic := "republic.ship.route.calculated" // The new broadcast channel!
 	httpPort := getEnv("HTTP_PORT", "8082")
 
-	// --- 1. Initialize and Start the Navicomputer ---
-	// We create a pool of 5 concurrent workers
-	navi := calculator.NewNavicomputer(5)
+	// --- 1. Initialize the HoloNet Broadcaster (Kafka Producer) ---
+	broadcaster := producer.NewHoloNetBroadcaster(kafkaBroker, outgoingTopic)
+	defer broadcaster.Close() // Ensure it closes gracefully on shutdown
+
+	// --- 2. Initialize and Start the Navicomputer ---
+	navi := calculator.NewNavicomputer(5, broadcaster)
 	navi.Start()
 
-	// --- 2. Start the HoloNet Listener (Kafka Consumer) ---
+	// --- 3. Start the HoloNet Listener (Kafka Consumer) ---
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Pass the navicomputer instance to the consumer!
-	go consumer.StartHoloNetListener(ctx, kafkaBroker, kafkaTopic, navi)
+	go consumer.StartHoloNetListener(ctx, kafkaBroker, incomingTopic, navi)
 
-	// --- 3. Start the HTTP API Server ---
+	// --- 4. Start the HTTP API Server ---
 	mux := http.NewServeMux()
-
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status": "ONLINE", "service": "Hyperdrive Calibration", "navicomputer_workers": 5}`)
@@ -52,7 +55,7 @@ func main() {
 		}
 	}()
 
-	// --- 4. Graceful Shutdown ---
+	// --- 5. Graceful Shutdown ---
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
