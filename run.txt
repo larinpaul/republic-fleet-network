@@ -1,0 +1,41 @@
+cd services\hull-fabrication
+
+gradle bootRun
+
+cd services\hyperdrive-calibration
+
+# download the kafka dependency specified in go.mod
+go mod tidy
+
+# ignite the engines:
+go run main.go
+
+# The life expercise: send a blueprint
+curl -X POST http://localhost:8081/api/v1/ships/fabricate -H "Content-Type: application/json" -d "{\"className\": \"X-Wing\", \"hullAlloy\": \"Durasteel\", \"deflectorShields\": true}"
+
+# The powershell alternative (if curl fails)
+$body = @{ className = "X-Wing"; hullAlloy = "Durasteel"; deflectorShields = $true } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:8081/api/v1/ships/fabricate" -Method Post -Body $body -ContentType "application/json"
+
+What you should see:
+In the API response: You will get a JSON object back with a manifestId, status: HULL_COMPLETE_AWAITING_HYPERDRIVE, and a timestamp.
+In the Kotlin Terminal: You will see a log: Broadcasting to HoloNet: Hull [ID] completed. Transmitting on topic...
+In the Go Terminal: You will see the Go Starfighter catch the message!
+🚀 Received Hull Completion for Ship: [ID] (Class: X-Wing). Initiating Navicomputer...
+⚙️ Worker 1 calculating route for ship [ID] (X-Wing)...
+(Wait 2 seconds for the simulated calculation)
+✅ Worker 1 FINISHED! Ship X-Wing route calculated: 10.42 parsecs.
+📡 Broadcasted Route ID RTE-... for Ship [ID] to HoloNet!
+
+ Step 4: Reading the HoloNet (Kafka UI)
+Let's prove this actually happened by looking at the raw data in the message bus.
+Open your web browser and go to http://localhost:8080 (The Kafka UI).
+Click on the republic-holonet cluster.
+Go to the Topics tab on the left menu. You will now see two topics that were automatically created by our services:
+republic.ship.hull.completed
+republic.ship.route.calculated
+Click on republic.ship.hull.completed.
+Go to the Messages tab.
+Boom. You will see the exact JSON payload that the Kotlin service sent.
+Now go back to Topics, click republic.ship.route.calculated, and look at the Messages. You will see the JSON payload that the Go service calculated and broadcasted!
+
